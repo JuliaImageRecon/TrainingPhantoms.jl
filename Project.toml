@@ -1,0 +1,13 @@
+name = "TrainingPhantoms"
+uuid = "cd4f3286-b756-4d71-b99f-a4358d548556"
+authors = ["Tobias Knopp <tobias.knopp@tuhh.de> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
