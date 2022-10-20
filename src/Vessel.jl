@@ -130,7 +130,7 @@ function vesselPhantom(N::NTuple{3,Int}; oversampling=2, kargs...)
   route, diameter_route = vesselPath(N; kargs...)
 
   obs = [ ellipsoid( Float32.(route[i]), Float32.(ntuple(_->diameter_route[i],3)), 
-                              (0,0,0), 1.0f0) for i=1:length(route)]
+                              (0,0), 1.0f0) for i=1:length(route)]
   ranges = ntuple(d-> 1:N[d], 3)
   img = phantom(ranges..., obs, oversampling)
   img[img .> 1] .= 1
