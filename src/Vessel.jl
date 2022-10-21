@@ -49,13 +49,19 @@ function vesselPath(N::NTuple{3,Int};
           if all( 1 .<= route[end] .< N) # check whether image boundaries are reached
             if i<=length(step_angle_xy) &&  i<=length(step_angle_xz) # both angles are still changing
               push!(route, route[end] .+ 
-                    stepsize .* (cos(angle_xy+step_angle_xy[i]), sin(angle_xy+step_angle_xy[i]), sin(angle_xz + step_angle_xz[i])) )
+                    stepsize .* (cos(angle_xy + step_angle_xy[i])*cos(angle_xz + step_angle_xz[i]), 
+                                 sin(angle_xy + step_angle_xy[i])*cos(angle_xz + step_angle_xz[i]), 
+                                 sin(angle_xz + step_angle_xz[i])) )
             elseif i>length(step_angle_xy) &&  i<=length(step_angle_xz) # only xz-angle changes
               push!(route, route[end] .+ 
-                    stepsize .* (cos(angle_xy+change_angle_xy), sin(angle_xy+change_angle_xy), sin(angle_xz + step_angle_xz[i])) )
+                    stepsize .* (cos(angle_xy + change_angle_xy)*cos(angle_xz + step_angle_xz[i]), 
+                                 sin(angle_xy + change_angle_xy)*cos(angle_xz + step_angle_xz[i]), 
+                                 sin(angle_xz + step_angle_xz[i])) )
             elseif i<=length(step_angle_xy) &&  i>length(step_angle_xz) # only xy-angle changes
               push!(route, route[end] .+ 
-                    stepsize .* (cos(angle_xy+step_angle_xy[i]), sin(angle_xy+step_angle_xy[i]), sin(angle_xz + change_angle_xz)) )
+                    stepsize .* (cos(angle_xy+step_angle_xy[i])*cos(angle_xz + change_angle_xz), 
+                                 sin(angle_xy+step_angle_xy[i])*cos(angle_xz + change_angle_xz), 
+                                 sin(angle_xz + change_angle_xz)) )
             end
           end
         end
@@ -64,7 +70,9 @@ function vesselPath(N::NTuple{3,Int};
         angle_xz = angle_xz + change_angle_xz
     else
         # if no directional change
-        push!(route, route[end] .+ stepsize .* (cos(angle_xy), sin(angle_xy), sin(angle_xz))) # use old angle
+        push!(route, route[end] .+ stepsize .* (cos(angle_xy)*cos(angle_xz), 
+                                                sin(angle_xy)*cos(angle_xz), 
+                                                sin(angle_xz))) # use old angle
     end
     
     
