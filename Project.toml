@@ -1,7 +1,7 @@
 name = "TrainingPhantoms"
 uuid = "cd4f3286-b756-4d71-b99f-a4358d548556"
 authors = ["Tobias Knopp <tobias.knopp@tuhh.de> and contributors"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
@@ -13,7 +13,7 @@ StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 
 [compat]
 ImageFiltering = "0.7"
-ImagePhantoms = "0.6"
+ImagePhantoms = "0.7"
 Rotations = "1"
 StableRNGs = "1.0"
 julia = "1"
