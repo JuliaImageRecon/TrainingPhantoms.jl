@@ -1,9 +1,15 @@
 
 # Based in ImagePhantoms.jl
 function singleEllipsoid(N::NTuple{D,Int}, radius, shift, rotAngles) where D
-
   ranges = ntuple(d-> 1:N[d], D)
-  ob = ellipsoid(shift .+ (N.÷2), radius, rotAngles, 1.0f0)
+  if D == 2
+    ellipsoidFct = ellipse
+  elseif D == 3
+    ellipsoidFct = ellipsoid
+  else
+    throw(ArgumentError("N=$N with $D dimensions is currently not supported."))
+  end
+  ob = ellipsoidFct(shift .+ (N.÷2), radius, rotAngles, 1.0f0)
   img = phantom(ranges..., [ob], 2)
   return img
 end
@@ -52,7 +58,7 @@ function ellipsoidPhantom(N::NTuple{D,Int}; rng::AbstractRNG = GLOBAL_RNG,
     if allowOcclusion
       img = max.(img, value.*P)
     else
-    img += value.*P
+      img += value.*P
     end
   end
   return img
