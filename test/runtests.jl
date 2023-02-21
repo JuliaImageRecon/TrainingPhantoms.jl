@@ -20,5 +20,8 @@ using Test
   im2 = ellipsoidPhantom(N; rng=StableRNG(1))
   @test im ≈ im2
 
+  im = ellipsoidPhantom(N; allowOcclusion=true)
+  @test maximum(im) <= 1
+
   #isosurface(im, isovalue=0.2, rotation=110)
 end
