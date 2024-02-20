@@ -15,6 +15,17 @@ function singleEllipsoid(N::NTuple{D,Int}, radius, shift, rotAngles) where D
 end
 
 """
+    scaleValue(x, a, b)
+Scale a value `x` that is assumed to lie in the interval [0,1] 
+to the interval [a,b] for given values a and b.
+"""
+function scaleValue(x::T, a::Real, b::Real=one(T)) where {T <: Real}
+  @assert a >= zero(T) && a < one(T) "scaling factor a must lie in the interval [0,1) but is $a"
+  @assert x >= zero(T) && x <= one(T) "value x is assumed to lie in the interval [0,1] but is $x"
+  return a + (x*(b-a))
+end
+
+"""
   ellipsoidPhantom(
     N::NTuple{D,Int}; 
     rng::AbstractRNG = GLOBAL_RNG,
@@ -31,18 +42,12 @@ end
 - `minValue`: minimal value of a single ellipse
 - `allowOcclusion`: if `true` ellipse overshadows smaller values at its location, i.e., 
       new ellipses are not simply added to the exisiting object, instead the maximum is selected
-
 """
 function ellipsoidPhantom(N::NTuple{D,Int}; rng::AbstractRNG = GLOBAL_RNG,
                           numObjects::Int = rand(rng, 5:10), minRadius::Real=1.0,
                           minValue::Real=0.1, allowOcclusion::Bool=false) where D
   img = zeros(N)
   @debug numObjects
-  # scale values from interval [0,1] to [a,1]
-  function scaleValue(x::T, a::Real) where {T <: Real}
-    @assert a >= zero(T) && a < one(T) "scaling factor a must lie in the interval [0,1] but is $a"
-    return a + (x*(1-a))
-  end
   for m=1:numObjects
     # in 2D there is just one rotational degree of freedom
     rotAngles = ntuple(_ -> 2π*rand(rng), D == 2 ? 1 : D)
