@@ -55,9 +55,6 @@ function ellipsoidPhantom(N::NTuple{D,Int}; rng::AbstractRNG = GLOBAL_RNG,
     shift = N .* ntuple(_ -> 0.6*(rand(rng)-0.5), D) 
     value = scaleValue.(rand(rng, 1), minValue)#.^2
     kernelWidth = ntuple(_ -> rand(rng)*N[1] / 20, D)
-    if shift > radius
-      shift = radius
-    end
     P = singleEllipsoid(N, radius, shift, rotAngles)
     P = imfilter(P, Kernel.gaussian(kernelWidth))
     if allowOcclusion
