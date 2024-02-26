@@ -1,15 +1,12 @@
+ellipsoidFunction(::NTuple{D, Int}) where D = throw(ArgumentError("Ellipsoid phantoms are currently not implemented for $D dimensions."))
+ellipsoidFunction(::NTuple{2, Int}) = ellipse
+ellipsoidFunction(::NTuple{3, Int}) = ellipsoid
 
 # Based in ImagePhantoms.jl
 function singleEllipsoid(N::NTuple{D,Int}, radius, shift, rotAngles) where D
   ranges = ntuple(d-> 1:N[d], D)
-  if D == 2
-    ellipsoidFct = ellipse
-  elseif D == 3
-    ellipsoidFct = ellipsoid
-  else
-    throw(ArgumentError("N=$N with $D dimensions is currently not supported."))
-  end
-  ob = ellipsoidFct(shift .+ (N.÷2), radius, rotAngles, 1.0f0)
+  objectFunction = ellipsoidFunction(N)
+  ob = objectFunction(shift .+ (N.÷2), radius, rotAngles, 1.0f0)
   img = phantom(ranges..., [ob], 2)
   return img
 end
