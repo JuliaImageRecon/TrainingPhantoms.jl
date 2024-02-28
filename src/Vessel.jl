@@ -5,7 +5,7 @@ vesselPath(N::NTuple{3,Int}; start, angle_xy, angle_xz, diameter, split_prob, ch
   max_change, splitnr, max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, 
   change_prob_increase, rng)
 
-Input parameters:
+### Input parameters:
 * N: Image size, given as a 3 tuple
 * start: starting point given as a 3x1 vector
 * angle_xy: angle in radians describing the starting angle with which the
@@ -135,16 +135,27 @@ end
 """
 vesselPhantom(N::NTuple{3,Int}; oversampling=2, kargs...)
 
-Example usage:
+### Input parameters:
+* N: Image size, given as a 3 tuple
+* oversampling: Oversampling factor for the phantom. Default is 2.
+* rng: Random number generator
+* kernelWidth: Width (standard deviation) of the Gaussian kernel (in pixel) used for smoothing the phantom. If nothing is given, a random value is chosen.
+* kargs...: remaining keyword arguments for `vesselPath`
 
-  using GR, TrainingPhantoms, StableRNGs
-  im = vesselPhantom((40,40,40); start=(1, 20, 20), angle_xy=0.0, angle_xz=0.0, 
-                                diameter=2, split_prob=0.5, change_prob=0.5, max_change=0.2, splitnr=1,
-                                rng = StableRNG(1));
-  isosurface(im, isovalue=0.2, rotation=110, tilt=40)
+### Example usage:
 
+  using GLMakie, TrainingPhantoms, StableRNGs
+
+  im = vesselPhantom((51,51,51); 
+          start=(1, 25, 25), angle_xy=0.0, angle_xz=0.0, 
+          diameter=2.5, split_prob=0.4, change_prob=0.3, 
+          max_change=0.3, splitnr=1, max_number_splits=1, rng StableRNG(123));
+
+  f = Figure(size=(300,300))
+  ax = Axis3(f[1,1], aspect=:data)
+  volume!(ax, im, algorithm=:iso, isorange=0.13, isovalue=0.3, colormap=:viridis, colorrange=[0.0,0.2])
 """
-function vesselPhantom(N::NTuple{3,Int}; oversampling=2, rng = GLOBAL_RNG, kargs...)
+function vesselPhantom(N::NTuple{3,Int}; oversampling=2, rng = GLOBAL_RNG, kernelWidth=nothing, kargs...)
   route, diameter_route = vesselPath(N; rng, kargs...)
   # add small sphere for every entry in the route
   obs = [ sphere( Float32.(route[i]), Float32(diameter_route[i]), 1.0f0) for i=eachindex(route) ]
