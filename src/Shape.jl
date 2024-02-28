@@ -32,6 +32,7 @@ end
     allowOcclusion::Bool=false
   )
 
+### Input parameters:
 - `N`: size of the phantom image
 - `rng`: random number generator
 - `numObjects`: number of ellipses to generate
