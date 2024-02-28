@@ -150,9 +150,11 @@ function vesselPhantom(N::NTuple{3,Int}; oversampling=2, rng = GLOBAL_RNG, kargs
   obs = [ sphere( Float32.(route[i]), Float32(diameter_route[i]), 1.0f0) for i=eachindex(route) ]
   ranges = ntuple(d-> 1:N[d], 3)
   img = phantom(ranges..., obs, oversampling)
-  # filter for smoothing, offset to ensure minimal filter width
-  filterWidth = (1.0-0.2)*rand(rng) + 0.2
-  kernelWidth = ntuple(_ -> filterWidth*N[1] / 20, 3)
+  if isnothing(kernelWidth)
+    # filter for smoothing, offset to ensure minimal filter width
+    filterWidth = (1.0-0.3)*rand(rng) + 0.3
+    kernelWidth = ntuple(_ -> filterWidth*N[1] / 20, 3)
+  end  
   img = imfilter(img, Kernel.gaussian(kernelWidth))
   img[img .> 1] .= 1
   return img
