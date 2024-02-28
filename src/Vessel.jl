@@ -24,15 +24,9 @@ function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, m
     step_angle_xy = range(0, change_angle_xy, length=steps_each_change)
     step_angle_xz = range(0, change_angle_xz, length=steps_each_change)
     
-    for i = 1:max(length(step_angle_xy),length(step_angle_xz)) # until the largest change of the two angles is reached
+    for i = 1:steps_each_change
       if all( 1 .<= route[end] .< N) # check whether image boundaries are reached
-        if i<=length(step_angle_xy) &&  i<=length(step_angle_xz) # both angles are still changing
           appendRoute!(route, stepsize, angle_xy + step_angle_xy[i], angle_xz + step_angle_xz[i])
-        elseif i>length(step_angle_xy) &&  i<=length(step_angle_xz) # only xz-angle changes
-          appendRoute!(route, stepsize, angle_xy + change_angle_xy, angle_xz + step_angle_xz[i])
-        elseif i<=length(step_angle_xy) &&  i>length(step_angle_xz) # only xy-angle changes
-          appendRoute!(route, stepsize, angle_xy + step_angle_xy[i], angle_xz + change_angle_xz)
-        end
       end
     end
     # set current angles to new angles
@@ -41,9 +35,8 @@ function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, m
   else
       # if no directional change
       for _=1:steps_no_change
-        appendRoute!(route, stepsize, angle_xy, angle_xz)
-        if !all( 1 .<= route[end] .< N)
-          break
+        if all( 1 .<= route[end] .< N) # check whether image boundaries are reached
+          appendRoute!(route, stepsize, angle_xy, angle_xz)          
         end
       end
   end
