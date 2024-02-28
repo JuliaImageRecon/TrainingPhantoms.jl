@@ -65,5 +65,10 @@ using Test
     im2 = ellipsoidPhantom(N; rng=StableRNG(1))
     @test im ≈ im2
     @test size(im) == N
+
+    im = ellipsoidPhantom((20,20); allowOcclusion=true)
+    @test maximum(im) <= 1
+
+    @test_throws ArgumentError ellipsoidPhantom((20,20,20,20))
   end
 end
