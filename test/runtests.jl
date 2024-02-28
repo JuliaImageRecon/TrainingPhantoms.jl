@@ -59,7 +59,6 @@ using Test
     @test minimum(im) == 0.0
   end
 
-
   @testset "Ellipsoid" begin
     # Ellipsoid Phantom
     im = ellipsoidPhantom(N; rng=StableRNG(1))
