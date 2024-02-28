@@ -15,14 +15,14 @@ end
 
 Simulate if and how the vessel changes its direction.
 """
-function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, max_change, rng)
+function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, max_change, steps_each_change, steps_no_change, rng)
   if (rand(rng, Float64) < change_prob) && (length(route) > 2)# if directional change of the vessel
     # randomly select new angles
     change_angle_xy = pi*(max_change-2*max_change*rand(rng,Float64))
     change_angle_xz = pi*(max_change-2*max_change*rand(rng,Float64))
     # create range such that change is gradually applied
-    step_angle_xy = range(0, change_angle_xy, length=20)
-    step_angle_xz = range(0, change_angle_xz, length=20)
+    step_angle_xy = range(0, change_angle_xy, length=steps_each_change)
+    step_angle_xz = range(0, change_angle_xz, length=steps_each_change)
     
     for i = 1:max(length(step_angle_xy),length(step_angle_xz)) # until the largest change of the two angles is reached
       if all( 1 .<= route[end] .< N) # check whether image boundaries are reached
@@ -40,9 +40,11 @@ function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, m
     angle_xz = angle_xz + change_angle_xz
   else
       # if no directional change
-      num_step = 15
-      for _=1:num_step
+      for _=1:steps_no_change
         appendRoute!(route, stepsize, angle_xy, angle_xz)
+        if !all( 1 .<= route[end] .< N)
+          break
+        end
       end
   end
   return angle_xy, angle_xz
@@ -88,6 +90,8 @@ end
 * change_diameter_splitting: Indicates by how much the diameter decreases when the vessel splits
 * split_prob_factor: Factor by which the split probability `split_prob` is multiplied when the vessel splits
 * change_prob_increase: Increase of the change probability `change_prob` when the vessel splits
+* steps_each_change: Number of steps for the change of the vessel direction
+* steps_no_change: Number of steps for the case that the vessel does not change its direction
 * rng: Random number generator
  
 Output:
@@ -109,13 +113,16 @@ function vesselPath(N::NTuple{3,Int};
                              change_diameter_splitting = 0.6,
                              split_prob_factor = 0.5,
                              change_prob_increase = 0.01,
+                             steps_each_change = 20,
+                             steps_no_change = 15,
                              rng::AbstractRNG = GLOBAL_RNG)
 
   route = NTuple{3,Float64}[]
   push!(route, start)
   while all( 1 .<= route[end] .< N) # while the route of the vessel is inside the image area
     
-    angle_xy, angle_xz =  changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, max_change, rng)
+    angle_xy, angle_xz =  changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, 
+        max_change, steps_each_change, steps_no_change, rng)
     
     # Splitting part
     if rand(rng, Float64) < split_prob && (length(route) > 3) && (splitnr ≤ max_number_splits) # if vessel is splitting
@@ -133,12 +140,14 @@ function vesselPath(N::NTuple{3,Int};
         # probabilities is made.
         routeA, diameterA = vesselPath(N; start=route[end], angle_xy=angle_xy-part_a_xy*angle_diff_xy, 
             angle_xz=angle_xz-part_a_xz*angle_diff_xz, diameter=diameter*change_diameter_splitting,
-            split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, max_change, splitnr=splitnr+1, 
-            max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, change_prob_increase, rng)
+            split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, 
+            max_change, splitnr=splitnr+1, max_number_splits, stepsize, change_diameter_splitting, 
+            split_prob_factor, change_prob_increase, steps_each_change, steps_no_change, rng)
         routeB, diameterB = vesselPath(N; start=route[end], angle_xy=angle_xy+(1-part_a_xy)*angle_diff_xy,  
             angle_xz=angle_xy+(1-part_a_xz)*angle_diff_xz, diameter=diameter*change_diameter_splitting, 
-            split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, max_change, splitnr=splitnr+1, 
-            max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, change_prob_increase, rng)     
+            split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, 
+            max_change, splitnr=splitnr+1, max_number_splits, stepsize, change_diameter_splitting, 
+            split_prob_factor, change_prob_increase, steps_each_change, steps_no_change, rng)     
         
         diameter_route = getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
         append!(route, routeA, routeB)
