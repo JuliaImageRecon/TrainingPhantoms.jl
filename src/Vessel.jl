@@ -189,5 +189,6 @@ function vesselPhantom(N::NTuple{3,Int}; oversampling=2, rng = GLOBAL_RNG, kerne
   end  
   img = imfilter(img, Kernel.gaussian(kernelWidth))
   img[img .> 1] .= 1
+  img[img .< 0] .= 0
   return img
 end
