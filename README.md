@@ -23,5 +23,7 @@ Pkg.add("TrainingPhantoms")
 
 ## Examples
 To help you get started, we have provided examples for each generator. The can be found in the [examples](examples/) folder.
-![ellipsoidPhantom2](https://github.com/JuliaImageRecon/TrainingPhantoms.jl/assets/115639115/863b0769-9643-4858-9201-3f94311ab2ba)
-![vesselPhantom](https://github.com/JuliaImageRecon/TrainingPhantoms.jl/assets/115639115/79c95f1f-b284-4562-8464-9b12ac3edf7d)
+<!--- ![ellipsoidPhantom2](https://github.com/JuliaImageRecon/TrainingPhantoms.jl/assets/115639115/863b0769-9643-4858-9201-3f94311ab2ba)
+![vesselPhantom](https://github.com/JuliaImageRecon/TrainingPhantoms.jl/assets/115639115/79c95f1f-b284-4562-8464-9b12ac3edf7d) --->
+![combined](https://github.com/JuliaImageRecon/TrainingPhantoms.jl/assets/115639115/d22d613c-17bf-4074-875a-8f9998c044f4)
+
