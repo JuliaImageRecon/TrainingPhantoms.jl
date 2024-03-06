@@ -1,46 +1,49 @@
 # This file is originally based on Matlab code written by Christine Droigk
 """
-  appendRoute!(route, stepsize, angle_xy, angle_xz)
+  appendRoute!(route, stepsize, angles)
 
 Append a new point to the route of the vessel.
 """
-function appendRoute!(route, stepsize, angle_xy, angle_xz)
-    push!(route, route[end] .+ stepsize .* (cos(angle_xy)*cos(angle_xz), 
-                                            sin(angle_xy)*cos(angle_xz), 
-                                            sin(angle_xz)))
+function appendRoute!(route, stepsize, angles::NTuple{2,Float64})
+  angle_xy, angle_xz = angles
+  push!(route, route[end] .+ stepsize .* (cos(angle_xy)*cos(angle_xz), 
+                                          sin(angle_xy)*cos(angle_xz), 
+                                          sin(angle_xz)))
+end
+
+function appendRoute!(route, stepsize, angles::NTuple{1,Float64})
+  (angle_xy,) = angles
+  push!(route, route[end] .+ stepsize .* (cos(angle_xy), 
+                                          sin(angle_xy)))
 end
 
 """
-  changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, max_change, rng)
+  changeDirection!(route, N, stepsize, angles, change_prob, max_change, rng)
 
 Simulate if and how the vessel changes its direction.
 """
-function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, max_change, steps_each_change, steps_no_change, rng)
+function changeDirection!(N::NTuple{D,Int}, route, stepsize, angles, change_prob, max_change, steps_each_change, steps_no_change, rng) where D
   if (rand(rng, Float64) < change_prob) && (length(route) > 2)# if directional change of the vessel
     # randomly select new angles
-    change_angle_xy = pi*(max_change-2*max_change*rand(rng,Float64))
-    change_angle_xz = pi*(max_change-2*max_change*rand(rng,Float64))
+    change_angles = ntuple(_ -> 2*max_change*rand(rng,Float64), D-1)
     # create range such that change is gradually applied
-    step_angle_xy = range(0, change_angle_xy, length=steps_each_change)
-    step_angle_xz = range(0, change_angle_xz, length=steps_each_change)
-    
+    step_angles = zip(ntuple(d -> range(0, change_angles[d], length=steps_each_change), D-1)...) |> collect
     for i = 1:steps_each_change
       if all( 1 .<= route[end] .<= N) # check whether image boundaries are reached
-          appendRoute!(route, stepsize, angle_xy + step_angle_xy[i], angle_xz + step_angle_xz[i])
+          appendRoute!(route, stepsize, angles .+ step_angles[i])
       end
     end
     # set current angles to new angles
-    angle_xy = angle_xy + change_angle_xy
-    angle_xz = angle_xz + change_angle_xz
+    angles = angles .+ change_angles
   else
       # if no directional change
       for _=1:steps_no_change
         if all( 1 .<= route[end] .<= N) # check whether image boundaries are reached
-          appendRoute!(route, stepsize, angle_xy, angle_xz)          
+          appendRoute!(route, stepsize, angles)          
         end
       end
   end
-  return angle_xy, angle_xz
+  return angles
 end
 
 """
@@ -63,16 +66,15 @@ function getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
 end
 
 """
-  vesselPath(N::NTuple{3,Int}; start, angle_xy, angle_xz, diameter, split_prob, change_prob, 
+  vesselPath(N::NTuple{D,Int}; start, angles, diameter, split_prob, change_prob, 
     max_change, splitnr, max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, 
-    change_prob_increase, rng)
+    change_prob_increase, steps_each_change, steps_no_change, rng)
+
 
 ### Input parameters:
-* N: Image size, given as a 3 tuple
-* start: starting point given as a 3x1 vector
-* angle_xy: angle in radians describing the starting angle with which the
-* vessel runs. 
-* angle_xz: same, but angle from xy-plane to vessel's z
+* N: Image size, given as a D tuple
+* start: starting point given as a D tuple
+* angles: D-1 tuple of angles for the vessel's direction (xy in 2D, xy and xz in 3D)
 * diameter: starting diameter of vessel
 * split_prob: probability for a splitting of the vessel into two vessel segments. Values between 0 and 1.
 * change_prob: probability for directional change of the vessel route. Values between 0 and 1.
@@ -88,56 +90,52 @@ end
 * rng: Random number generator
  
 Output:
-* route: A length N vector containing the points 3D of the route of the vessel. The
-* length N depends on the random route.
+* route: A length N vector containing the D dimensional points of the route of the vessel. The 
+length N depends on the random route.
 * diameter_route: A length N vector containing the diameter of the vessel at the positions of the route.
 """
-function vesselPath(N::NTuple{3,Int}; 
-                             start, 
-                             angle_xy, 
-                             angle_xz, 
-                             diameter, 
-                             split_prob, 
-                             change_prob, 
-                             max_change, 
-                             splitnr,
-                             max_number_splits = Inf,
-                             stepsize = max(N...)/200,
-                             change_diameter_splitting = 0.6,
-                             split_prob_factor = 0.5,
-                             change_prob_increase = 0.01,
-                             steps_each_change = 20,
-                             steps_no_change = 15,
-                             rng::AbstractRNG = GLOBAL_RNG)
-
-  route = NTuple{3,Float64}[]
+function vesselPath(N::NTuple{D,Int}; 
+                    start,
+                    angles::NTuple{Da,Real},
+                    diameter::Real, 
+                    split_prob::Real, 
+                    change_prob::Real, 
+                    max_change::Real, 
+                    splitnr::Int=1,
+                    max_number_splits::Real = Inf,
+                    stepsize::Real = max(N...)/200,
+                    change_diameter_splitting::Real = 0.6,
+                    split_prob_factor::Real = 0.5,
+                    change_prob_increase::Real = 0.01,
+                    steps_each_change::Int = 20,
+                    steps_no_change::Int = 15,
+                    rng::AbstractRNG = GLOBAL_RNG) where {D, Da}
+  @assert (D-1) == Da "The length of the angles tuple must be $(D-1) but is $Da"
+  route = NTuple{D,Float64}[]
   push!(route, start)
   while all( 1 .<= route[end] .<= N) # while the route of the vessel is inside the image area
-    
-    angle_xy, angle_xz =  changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, 
+    angles =  changeDirection!(N, route, stepsize, angles, change_prob, 
         max_change, steps_each_change, steps_no_change, rng)
     
     # Splitting part
     if rand(rng, Float64) < split_prob && (length(route) > 3) && (splitnr ≤ max_number_splits) # if vessel is splitting
         min_angle_diff = 0.15*pi
         # Randomly select the angle between the resulting two vessel parts
-        angle_diff_xy = rand(rng, Float64)*(pi/2 - min_angle_diff) + min_angle_diff
-        angle_diff_xz = rand(rng, Float64)*(pi/2 - min_angle_diff) + min_angle_diff
+        angle_diffs = ntuple(_ -> rand(rng, Float64)*(pi/2 - min_angle_diff) + min_angle_diff, D-1)
         # Randomly select the part of the angle related to the first division
-        part_a_xy = rand(rng, Float64)
-        part_a_xz = rand(rng, Float64)
+        parts_a = ntuple(_ -> rand(rng, Float64), D-1)
         
         # Call recursively this function for each of the two vessel
         # segments with adjusted angles and diameter. Here, an adjustment
         # of the splitting probabilities and directional change
-        # probabilities is made.
-        routeA, diameterA = vesselPath(N; start=route[end], angle_xy=angle_xy-part_a_xy*angle_diff_xy, 
-            angle_xz=angle_xz-part_a_xz*angle_diff_xz, diameter=diameter*change_diameter_splitting,
+        # probabilities is made.    
+        routeA, diameterA = vesselPath(N; start=route[end], angles=angles .- parts_a .* angle_diffs,
+            diameter=diameter*change_diameter_splitting,
             split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, 
             max_change, splitnr=splitnr+1, max_number_splits, stepsize, change_diameter_splitting, 
             split_prob_factor, change_prob_increase, steps_each_change, steps_no_change, rng)
-        routeB, diameterB = vesselPath(N; start=route[end], angle_xy=angle_xy+(1-part_a_xy)*angle_diff_xy,  
-            angle_xz=angle_xy+(1-part_a_xz)*angle_diff_xz, diameter=diameter*change_diameter_splitting, 
+        routeB, diameterB = vesselPath(N; start=route[end], angles=angles .+ (1 .- parts_a) .* angle_diffs,  
+            diameter=diameter*change_diameter_splitting, 
             split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, 
             max_change, splitnr=splitnr+1, max_number_splits, stepsize, change_diameter_splitting, 
             split_prob_factor, change_prob_increase, steps_each_change, steps_no_change, rng)     
@@ -152,12 +150,15 @@ function vesselPath(N::NTuple{3,Int};
   return route, diameter_route
 end
 
+sphereFunction(::NTuple{D, Int}) where D = throw(ArgumentError("Vessel phantoms are currently not implemented for $D dimensions."))
+sphereFunction(::NTuple{2, Int}) = circle
+sphereFunction(::NTuple{3, Int}) = sphere
 
 """
-  vesselPhantom(N::NTuple{3,Int}; oversampling=2, kargs...)
+  vesselPhantom(N::NTuple{D,Int}; oversampling=2, kargs...)
 
 ### Input parameters:
-* N: Image size, given as a 3 tuple
+* N: Image size, given as a D tuple
 * oversampling: Oversampling factor for the phantom. Default is 2.
 * rng: Random number generator
 * kernelWidth: Width (standard deviation) of the Gaussian kernel (in pixel) used for smoothing the phantom. If nothing is given, a random value is chosen.
@@ -168,7 +169,7 @@ end
   using GLMakie, TrainingPhantoms, StableRNGs
 
   im = vesselPhantom((51,51,51); 
-          start=(1, 25, 25), angle_xy=0.0, angle_xz=0.0, 
+          start=(1, 25, 25), angles=(0.0, 0.0), 
           diameter=2.5, split_prob=0.4, change_prob=0.3, 
           max_change=0.3, splitnr=1, max_number_splits=1, rng StableRNG(123));
 
@@ -176,16 +177,17 @@ end
   ax = Axis3(f[1,1], aspect=:data)
   volume!(ax, im, algorithm=:iso, isorange=0.13, isovalue=0.3, colormap=:viridis, colorrange=[0.0,0.2])
 """
-function vesselPhantom(N::NTuple{3,Int}; oversampling=2, rng = GLOBAL_RNG, kernelWidth=nothing, kargs...)
+function vesselPhantom(N::NTuple{D,Int}; oversampling=2, rng = GLOBAL_RNG, kernelWidth=nothing, kargs...) where D
+  objectFunction = sphereFunction(N)
   route, diameter_route = vesselPath(N; rng, kargs...)
   # add small sphere for every entry in the route
-  obs = [ sphere( Float32.(route[i]), Float32(diameter_route[i]), 1.0f0) for i=eachindex(route) ]
-  ranges = ntuple(d-> 1:N[d], 3)
+  obs = [ objectFunction( Float32.(route[i]), Float32(diameter_route[i]), 1.0f0) for i=eachindex(route) ]
+  ranges = ntuple(d-> 1:N[d], D)
   img = phantom(ranges..., obs, oversampling)
   if isnothing(kernelWidth)
     # filter for smoothing, offset to ensure minimal filter width
     filterWidth = (1.0-0.3)*rand(rng) + 0.3
-    kernelWidth = ntuple(_ -> filterWidth*N[1] / 20, 3)
+    kernelWidth = ntuple(_ -> filterWidth*N[1] / 20, D)
   end  
   img = imfilter(img, Kernel.gaussian(kernelWidth))
   img[img .> 1] .= 1

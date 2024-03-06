@@ -28,7 +28,7 @@ using Test
   @testset "vesselPath Tests" begin
     rng = StableRNG(1)
     @testset "Normal operation" begin
-        route, diameter_route = TrainingPhantoms.vesselPath(N; start=(1,20,20), angle_xy=0.0, angle_xz=0.0, diameter=2, 
+        route, diameter_route = TrainingPhantoms.vesselPath(N; start=(1,20,20), angles=(0.0,0.0), diameter=2, 
                                            split_prob=0.5, change_prob=0.5, max_change=0.2, 
                                            splitnr=1, max_number_splits=2, stepsize=0.25, 
                                            change_diameter_splitting=4/5, split_prob_factor=0.5, 
@@ -36,7 +36,7 @@ using Test
         @test length(route) == length(diameter_route)
     end
     @testset "Start outside volume" begin
-        route, diameter_route = TrainingPhantoms.vesselPath(N; start=(1,50,20), angle_xy=0.0, angle_xz=0.0, diameter=2, 
+        route, diameter_route = TrainingPhantoms.vesselPath(N; start=(1,50,20), angles=(0.0,0.0), diameter=2, 
                                            split_prob=0.5, change_prob=0.5, max_change=0.2, 
                                            splitnr=1, max_number_splits=2, stepsize=0.25, 
                                            change_diameter_splitting=4/5, split_prob_factor=0.5, 
@@ -46,17 +46,25 @@ using Test
     end
   end
   @testset "vesselPhantom" begin
-    im = vesselPhantom(N; start=(1, 20, 20), angle_xy=0.0, angle_xz=0.0, 
+    im = vesselPhantom(N; start=(1, 20, 20), angles = (0.0, 0.0),
                        diameter=2, split_prob=0.5, change_prob=0.5, max_change=0.2, splitnr=1,
                        rng = StableRNG(1));
 
-    im2 = vesselPhantom(N; start=(1, 20, 20), angle_xy=0.0, angle_xz=0.0, 
+    im2 = vesselPhantom(N; start=(1, 20, 20), angles = (0.0, 0.0), 
                         diameter=2, split_prob=0.5, change_prob=0.5, max_change=0.2, splitnr=1,
                         rng = StableRNG(1));
     @test im ≈ im2
     @test size(im) == N
     @test maximum(im) == 1.0
     @test minimum(im) == 0.0
+
+    im = vesselPhantom((40,40); start=(1, 20), angles = (0.0,), 
+                       diameter=2, split_prob=0.5, change_prob=0.5, max_change=0.2, splitnr=1,
+                       rng = StableRNG(1));
+    @test size(im) == (40,40)
+
+    @test_throws ArgumentError vesselPhantom((20,20,20,20))
+
   end
 
   @testset "Ellipsoid" begin
