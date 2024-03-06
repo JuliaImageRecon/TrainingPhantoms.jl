@@ -25,7 +25,7 @@ function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, m
     step_angle_xz = range(0, change_angle_xz, length=steps_each_change)
     
     for i = 1:steps_each_change
-      if all( 1 .<= route[end] .< N) # check whether image boundaries are reached
+      if all( 1 .<= route[end] .<= N) # check whether image boundaries are reached
           appendRoute!(route, stepsize, angle_xy + step_angle_xy[i], angle_xz + step_angle_xz[i])
       end
     end
@@ -35,7 +35,7 @@ function changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, m
   else
       # if no directional change
       for _=1:steps_no_change
-        if all( 1 .<= route[end] .< N) # check whether image boundaries are reached
+        if all( 1 .<= route[end] .<= N) # check whether image boundaries are reached
           appendRoute!(route, stepsize, angle_xy, angle_xz)          
         end
       end
@@ -112,7 +112,7 @@ function vesselPath(N::NTuple{3,Int};
 
   route = NTuple{3,Float64}[]
   push!(route, start)
-  while all( 1 .<= route[end] .< N) # while the route of the vessel is inside the image area
+  while all( 1 .<= route[end] .<= N) # while the route of the vessel is inside the image area
     
     angle_xy, angle_xz =  changeDirection!(route, N, stepsize, angle_xy, angle_xz, change_prob, 
         max_change, steps_each_change, steps_no_change, rng)
