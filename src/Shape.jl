@@ -22,19 +22,56 @@ function scaleValue(x::T, a::Real, b::Real=one(T)) where {T <: Real}
   return a + (x*(b-a))
 end
 
-radius_scaled_unit_vector(radius::NTuple{D, <:Real}, i::Int) where D = ntuple(j -> i == j ? radius[i] : 0.0, D)
-rotate_vector(v::NTuple{3, <:Real}, rotAngles::NTuple{3, <:Real}) = ImagePhantoms.Rxyz_mul(v, rotAngles...)
+"""
+    getRotationMatrix(D::Int, rotAngles::NTuple{Dr, <:Real}) where Dr
+Get the rotation matrix for the given rotation angles.
+
+### Input parameters:
+- `D`: dimension of the object
+- `rotAngles`: rotation angles
+"""
+function getRotationMatrix(D::Int, rotAngles::NTuple{Dr, <:Real}) where Dr
+  R = zeros(Float64, (D,D))
+  for i=1:D
+    # readout columns of rotation matrix with unit vectors
+    R[:,i] = [rotate_vector(ntuple(j -> (i==j ? 1.0 : 0.0), D), rotAngles)...]
+  end
+  return R
+end
+
+"""
+    getEllipsoidMatrix(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, <:Real}) where {Dr, Da}
+Get the matrix that describes the ellipsoid in the rotated coordinate system.
+
+### Input parameters:
+- `radius`: radii of the ellipsoid
+- `rotAngles`: rotation angles
+"""
+function getEllipsoidMatrix(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, <:Real}) where {Dr, Da}
+  R = getRotationMatrix(Dr, rotAngles)
+  A = Diagonal([1/radius[i]^2 for i=1:Dr])
+  return transpose(R)*A*R
+end
+
+"""
+    ellipsoidBoundingBox(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, <:Real}) where {Dr, Da}
+Get the bounding box of the specified ellipsoid.
+
+### Input parameters:
+- `radius`: radii of the ellipsoid
+- `rotAngles`: rotation angles
+"""
+function ellipsoidBoundingBox(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, <:Real}) where {Dr, Da}
+  B = getEllipsoidMatrix(radius, rotAngles) |> inv
+  return sqrt.(diag(B))
+end
+
+# rotate vector v by the given rotation angles
+rotate_vector(v::NTuple{3, <:Real}, rotAngles::NTuple{3, <:Real}) = ImagePhantoms.Rxyz_inv(v, rotAngles...)
 rotate_vector(v::NTuple{2, <:Real}, rotAngles::NTuple{1, <:Real}) = ImagePhantoms.rotate2d(v, rotAngles...)
 
-function bbox(radius::NTuple{Dr,<:Real}, rotAngles::NTuple{Da,<:Real}) where {Dr,Da}
-  matTest = zeros(Float64, (Dr,Dr))
-  for i=1:Dr
-      r_i = radius_scaled_unit_vector(radius, i)
-      matTest[i,:] = abs.([rotate_vector(r_i, rotAngles)...])
-  end
-  boundBox = [maximum(matTest[:,i]) for i=1:Dr]
-  return boundBox
-end
+# Get the number of rotational degrees of freedom (according to Euclidean group)
+rotDOF(::NTuple{D,<:Real}) where D = Int(D*(D-1)/2)
 
 """
   ellipsoidPhantom(
@@ -54,21 +91,21 @@ end
 - `minValue`: minimal value of a single ellipse
 - `allowOcclusion`: if `true` ellipse overshadows smaller values at its location, i.e., 
       new ellipses are not simply added to the exisiting object, instead the maximum is selected
+- `pixelMargin`: minimal distance of the object to the edge of the image
 """
 function ellipsoidPhantom(N::NTuple{D,Int}; rng::AbstractRNG = GLOBAL_RNG,
-                          numObjects::Int = rand(rng, 5:10), minRadius::Real=1.0,
-                          minValue::Real=0.1, allowOcclusion::Bool=false) where D
+                          numObjects::Int = rand(rng, 5:10), minRadiusPixel::Real=1.0,
+                          maxRadiusPercent::Real=0.3, maxShiftPercent::Real=0.6,
+                          minValue::Real=0.1, allowOcclusion::Bool=false, pixelMargin::Real=1) where D
   img = zeros(N)
   @debug numObjects
   for m=1:numObjects
-    # in 2D there is just one rotational degree of freedom
-    rotAngles = ntuple(_ -> 2π*rand(rng), D == 2 ? 1 : D)
-    radius = N .* scaleValue.(ntuple(_ -> 0.3*rand(rng), D), minRadius./N)
-    shift = N .* ntuple(_ -> 0.6*(rand(rng)-0.5), D)
-    safety_margin_shift = 1.0
-    # clip shift to ensure that the object is fully inside the image
-    bb = bbox(radius, rotAngles)
-    shift = ntuple(i -> (bb[i]+abs(shift[i]) < (N[i]/2 - 1.0)*safety_margin_shift) ? shift[i] : (N[i]/2 - bb[i] - 1.0)*sign(shift[i])*safety_margin_shift, D)
+    rotAngles = ntuple(_ -> 2π*rand(rng), rotDOF(N))
+    radius = N .* scaleValue.(ntuple(_ -> rand(rng), D), minRadiusPixel./N, maxRadiusPercent)
+    shift = N .* ntuple(_ -> maxShiftPercent*(rand(rng)-0.5), D)
+    boundingBox = ellipsoidBoundingBox(radius, rotAngles)
+    # if the bounding box is too close to the edge of the image, shift the object to have `pixelMargin` distance
+    shift = ntuple(i -> (boundingBox[i]+abs(shift[i]) < (N[i]/2 - pixelMargin)) ? shift[i] : (N[i]/2 - boundingBox[i] - pixelMargin)*sign(shift[i]), D)
     value = scaleValue.(rand(rng, 1), minValue)#.^2
     kernelWidth = ntuple(_ -> rand(rng)*N[1] / 20, D)
     P = singleEllipsoid(N, radius, shift, rotAngles)
