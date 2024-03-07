@@ -67,6 +67,7 @@ function ellipsoidBoundingBox(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, 
 end
 
 # rotate vector v by the given rotation angles
+rotate_vector(::NTuple{D, <:Real}, ::NTuple{Da, <:Real}) where {D, Da} = throw(ArgumentError("`rotate_vector` currently does not support rotations for vectors of size $D with $Da angles."))
 rotate_vector(v::NTuple{3, <:Real}, rotAngles::NTuple{3, <:Real}) = ImagePhantoms.Rxyz_inv(v, rotAngles...)
 rotate_vector(v::NTuple{2, <:Real}, rotAngles::NTuple{1, <:Real}) = ImagePhantoms.rotate2d(v, rotAngles...)
 

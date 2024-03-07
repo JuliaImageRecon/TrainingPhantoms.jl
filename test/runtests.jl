@@ -77,6 +77,6 @@ using Test
     im = ellipsoidPhantom((20,20); allowOcclusion=true)
     @test maximum(im) <= 1
 
-    @test_throws MethodError ellipsoidPhantom((20,20,20,20))
+    @test_throws ArgumentError ellipsoidPhantom((20,20,20,20))
   end
 end
