@@ -13,6 +13,7 @@ end
 
 """
     scaleValue(x, a, b)
+
 Scale a value `x` that is assumed to lie in the interval [0,1] 
 to the interval [a,b] for given values a and b.
 """
@@ -24,9 +25,10 @@ end
 
 """
     getRotationMatrix(D::Int, rotAngles::NTuple{Dr, <:Real}) where Dr
+
 Get the rotation matrix for the given rotation angles.
 
-### Input parameters:
+# Arguments
 - `D`: dimension of the object
 - `rotAngles`: rotation angles
 """
@@ -41,9 +43,10 @@ end
 
 """
     getEllipsoidMatrix(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, <:Real}) where {Dr, Da}
+
 Get the matrix that describes the ellipsoid in the rotated coordinate system.
 
-### Input parameters:
+# Arguments
 - `radius`: radii of the ellipsoid
 - `rotAngles`: rotation angles
 """
@@ -55,9 +58,10 @@ end
 
 """
     ellipsoidBoundingBox(radius::NTuple{Dr, <:Real}, rotAngles::NTuple{Da, <:Real}) where {Dr, Da}
+
 Get the bounding box of the specified ellipsoid.
 
-### Input parameters:
+# Arguments
 - `radius`: radii of the ellipsoid
 - `rotAngles`: rotation angles
 """
@@ -75,16 +79,18 @@ rotate_vector(v::NTuple{2, <:Real}, rotAngles::NTuple{1, <:Real}) = ImagePhantom
 rotDOF(::NTuple{D,<:Real}) where D = Int(D*(D-1)/2)
 
 """
-  ellipsoidPhantom(
-    N::NTuple{D,Int}; 
-    rng::AbstractRNG = GLOBAL_RNG,
-    numObjects::Int = rand(rng, 5:10),
-    minRadius::Real=1.0,
-    minValue::Real=0.1,
-    allowOcclusion::Bool=false
-  )
+    ellipsoidPhantom(
+      N::NTuple{D,Int}; 
+      rng::AbstractRNG = GLOBAL_RNG,
+      numObjects::Int = rand(rng, 5:10),
+      minRadius::Real=1.0,
+      minValue::Real=0.1,
+      allowOcclusion::Bool=false
+    )
 
-### Input parameters:
+Generate phantom composed of mulitple ellipsoids.
+
+# Arguments
 - `N`: size of the phantom image
 - `rng`: random number generator
 - `numObjects`: number of ellipses to generate
@@ -93,6 +99,15 @@ rotDOF(::NTuple{D,<:Real}) where D = Int(D*(D-1)/2)
 - `allowOcclusion`: if `true` ellipse overshadows smaller values at its location, i.e., 
       new ellipses are not simply added to the exisiting object, instead the maximum is selected
 - `pixelMargin`: minimal distance of the object to the edge of the image
+
+# Examples
+
+  using GLMakie, TrainingPhantoms, StableRNGs
+
+  im = ellipsoidPhantom((51,51); rng=StableRNG(1))
+  f = Figure(size=(300,300))
+  ax = Axis3(f[1,1], aspect=:data)
+  volume!(ax, im, algorithm=:iso, isorange=0.13, isovalue=0.3, colormap=:viridis, colorrange=[0.0,0.2])
 """
 function ellipsoidPhantom(N::NTuple{D,Int}; rng::AbstractRNG = GLOBAL_RNG,
                           numObjects::Int = rand(rng, 5:10), minRadiusPixel::Real=1.0,
