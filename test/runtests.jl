@@ -78,5 +78,6 @@ using Test
     @test maximum(im) <= 1
 
     @test_throws ArgumentError ellipsoidPhantom((20,20,20,20))
+    @test_throws ArgumentError TrainingPhantoms.ellipsoidFunction((20,20,20,20))
   end
 end

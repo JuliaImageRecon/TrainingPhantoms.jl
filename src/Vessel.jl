@@ -1,6 +1,6 @@
 # This file is originally based on Matlab code written by Christine Droigk
 """
-  appendRoute!(route, stepsize, angles)
+    appendRoute!(route, stepsize, angles)
 
 Append a new point to the route of the vessel.
 """
@@ -18,7 +18,7 @@ function appendRoute!(route, stepsize, angles::NTuple{1,Float64})
 end
 
 """
-  changeDirection!(route, N, stepsize, angles, change_prob, max_change, rng)
+    changeDirection!(route, N, stepsize, angles, change_prob, max_change, rng)
 
 Simulate if and how the vessel changes its direction.
 """
@@ -47,7 +47,7 @@ function changeDirection!(N::NTuple{D,Int}, route, stepsize, angles, change_prob
 end
 
 """
-  getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
+    getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
 
 Compute the diameter anlong the route of the vessel.
 """
@@ -66,33 +66,33 @@ function getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
 end
 
 """
-  vesselPath(N::NTuple{D,Int}; start, angles, diameter, split_prob, change_prob, 
-    max_change, splitnr, max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, 
-    change_prob_increase, steps_each_change, steps_no_change, rng)
+    vesselPath(N::NTuple{D,Int}; start, angles, diameter, split_prob, change_prob, 
+      max_change, splitnr, max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, 
+      change_prob_increase, steps_each_change, steps_no_change, rng)
 
 
-### Input parameters:
-* N: Image size, given as a D tuple
-* start: starting point given as a D tuple
-* angles: D-1 tuple of angles for the vessel's direction (xy in 2D, xy and xz in 3D)
-* diameter: starting diameter of vessel
-* split_prob: probability for a splitting of the vessel into two vessel segments. Values between 0 and 1.
-* change_prob: probability for directional change of the vessel route. Values between 0 and 1.
-* max_change: max_change * pi specifies the maximum direction-change angle.
-* splitnr: used for recursive call of the function. For the first call set it to 1. 
-* max_number_splits: maximum number of splits of the vessel.
-* stepsize: stepsize of the vessel.
-* change_diameter_splitting: Indicates by how much the diameter decreases when the vessel splits
-* split_prob_factor: Factor by which the split probability `split_prob` is multiplied when the vessel splits
-* change_prob_increase: Increase of the change probability `change_prob` when the vessel splits
-* steps_each_change: Number of steps for the change of the vessel direction
-* steps_no_change: Number of steps for the case that the vessel does not change its direction
-* rng: Random number generator
+# Arguments
+- `N`: Image size, given as a D tuple
+- `start`: starting point given as a D tuple
+- `angles`: D-1 tuple of angles for the vessel's direction (xy in 2D, xy and xz in 3D)
+- `diameter`: starting diameter of vessel
+- `split_prob`: probability for a splitting of the vessel into two vessel segments. Values between 0 and 1.
+- `change_prob`: probability for directional change of the vessel route. Values between 0 and 1.
+- `max_change`: max_change * pi specifies the maximum direction-change angle.
+- `splitnr`: used for recursive call of the function. For the first call set it to 1. 
+- `max_number_splits`: maximum number of splits of the vessel.
+- `stepsize`: stepsize of the vessel.
+- `change_diameter_splitting`: Indicates by how much the diameter decreases when the vessel splits
+- `split_prob_factor`: Factor by which the split probability `split_prob` is multiplied when the vessel splits
+- `change_prob_increase`: Increase of the change probability `change_prob` when the vessel splits
+- `steps_each_change`: Number of steps for the change of the vessel direction
+- `steps_no_change`: Number of steps for the case that the vessel does not change its direction
+- `rng`: Random number generator
  
-Output:
-* route: A length N vector containing the D dimensional points of the route of the vessel. The 
+# Output
+- `route`: A length N vector containing the D dimensional points of the route of the vessel. The 
 length N depends on the random route.
-* diameter_route: A length N vector containing the diameter of the vessel at the positions of the route.
+- `diameter_route`: A length N vector containing the diameter of the vessel at the positions of the route.
 """
 function vesselPath(N::NTuple{D,Int}; 
                     start,
@@ -155,16 +155,18 @@ sphereFunction(::NTuple{2, Int}) = circle
 sphereFunction(::NTuple{3, Int}) = sphere
 
 """
-  vesselPhantom(N::NTuple{D,Int}; oversampling=2, kargs...)
+    vesselPhantom(N::NTuple{D,Int}; oversampling=2, kargs...)
 
-### Input parameters:
+Generate a random vessel phantom.
+
+# Arguments
 * N: Image size, given as a D tuple
 * oversampling: Oversampling factor for the phantom. Default is 2.
 * rng: Random number generator
 * kernelWidth: Width (standard deviation) of the Gaussian kernel (in pixel) used for smoothing the phantom. If nothing is given, a random value is chosen.
 * kargs...: remaining keyword arguments for `vesselPath`
 
-### Example usage:
+# Examples
 
   using GLMakie, TrainingPhantoms, StableRNGs
 
