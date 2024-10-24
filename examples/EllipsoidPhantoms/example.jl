@@ -1,15 +1,8 @@
-using Pkg, TrainingPhantoms, Statistics
-
-# Install required packages
-for P in [:CairoMakie, :GLMakie, :Makie, :StableRNGs]
-    try
-        @eval import $P
-    catch
-        Pkg.add(String(P))
-        @eval import $P
-    end
-end
-include(joinpath("..","helperFunctions","meanIntensityPlotAndIsosurface.jl"))
+using Pkg
+Pkg.activate(joinpath(@__DIR__,".."))
+Pkg.instantiate()
+using TrainingPhantoms, Statistics
+include(joinpath(@__DIR__,"..","helperFunctions","meanIntensityPlotAndIsosurface.jl"))
 GLMakie.activate!()
 
 # Generate a vessel phantom

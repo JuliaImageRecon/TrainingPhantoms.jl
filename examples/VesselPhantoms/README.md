@@ -15,6 +15,6 @@ using TrainingPhantoms
 ## Execution
 Finally, just include the example code
 ```julia
-include(joinpath(dirname(pathof(TrainingPhantoms)),"..","VesselPhantoms", "vesselPhantom.jl"))
+include(joinpath(dirname(pathof(TrainingPhantoms)),"..","VesselPhantoms", "example.jl"))
 ```
 After the vessel was generated, the phantom will be shown in a new window.
