@@ -18,17 +18,17 @@ function appendRoute!(route, stepsize, angles::NTuple{1,Float64})
 end
 
 """
-    changeDirection!(route, N, stepsize, angles, change_prob, max_change, rng)
+    changeDirection!(route, N, stepsize, angles, changeProb, maxChange, rng)
 
 Simulate if and how the vessel changes its direction.
 """
-function changeDirection!(N::NTuple{D,Int}, route, stepsize, angles, change_prob, max_change, steps_each_change, steps_no_change, rng) where D
-  if (rand(rng, Float64) < change_prob) && (length(route) > 2)# if directional change of the vessel
+function changeDirection!(N::NTuple{D,Int}, route, stepsize, angles, changeProb, maxChange, stepsEachChange, stepsNoChange, rng) where D
+  if (rand(rng, Float64) < changeProb) && (length(route) > 2)# if directional change of the vessel
     # randomly select new angles
-    change_angles = ntuple(_ -> 2*max_change*rand(rng,Float64), D-1)
+    change_angles = ntuple(_ -> 2*maxChange*rand(rng,Float64), D-1)
     # create range such that change is gradually applied
-    step_angles = zip(ntuple(d -> range(0, change_angles[d], length=steps_each_change), D-1)...) |> collect
-    for i = 1:steps_each_change
+    step_angles = zip(ntuple(d -> range(0, change_angles[d], length=stepsEachChange), D-1)...) |> collect
+    for i = 1:stepsEachChange
       if all( 1 .<= route[end] .<= N) # check whether image boundaries are reached
           appendRoute!(route, stepsize, angles .+ step_angles[i])
       end
@@ -37,7 +37,7 @@ function changeDirection!(N::NTuple{D,Int}, route, stepsize, angles, change_prob
     angles = angles .+ change_angles
   else
       # if no directional change
-      for _=1:steps_no_change
+      for _=1:stepsNoChange
         if all( 1 .<= route[end] .<= N) # check whether image boundaries are reached
           appendRoute!(route, stepsize, angles)          
         end
@@ -47,28 +47,28 @@ function changeDirection!(N::NTuple{D,Int}, route, stepsize, angles, change_prob
 end
 
 """
-    getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
+    getDiameterRoute(route, diameter, splitDiameterChange, splitnr)
 
 Compute the diameter anlong the route of the vessel.
 """
-function getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
+function getDiameterRoute(route, diameter, splitDiameterChange, splitnr)
   if splitnr>1
     # for the case that the vessel leaves the image during a split the change is set to 1
     # otherwise `range` throws an error since start and end do not match but length is 1
-    change_diameter_splitting_ = length(route) > 1 ? change_diameter_splitting : 1
+    splitDiameterChange_ = length(route) > 1 ? splitDiameterChange : 1
     # gradually change diameter from old value to current one
-    diameter_route = collect(range((1/change_diameter_splitting_)*diameter, diameter, length=length(route)))
+    diameterRoute = collect(range((1/splitDiameterChange_)*diameter, diameter, length=length(route)))
   else
     # no change if vessel did not already split once
-    diameter_route = diameter*ones(length(route))
+    diameterRoute = diameter*ones(length(route))
   end
-  return diameter_route
+  return diameterRoute
 end
 
 """
-    vesselPath(N::NTuple{D,Int}; start, angles, diameter, split_prob, change_prob, 
-      max_change, splitnr, max_number_splits, stepsize, change_diameter_splitting, split_prob_factor, 
-      change_prob_increase, steps_each_change, steps_no_change, rng)
+    vesselPath(N::NTuple{D,Int}; start, angles, diameter, splitProb, changeProb, 
+      maxChange, splitnr, maxNumSplits, stepsize, splitDiameterChange, splitProbFactor, 
+      changeProbIncrease, stepsEachChange, stepsNoChange, rng)
 
 
 # Arguments
@@ -76,49 +76,49 @@ end
 - `start`: starting point given as a D tuple
 - `angles`: D-1 tuple of angles for the vessel's direction (xy in 2D, xy and xz in 3D)
 - `diameter`: starting diameter of vessel
-- `split_prob`: probability for a splitting of the vessel into two vessel segments. Values between 0 and 1.
-- `change_prob`: probability for directional change of the vessel route. Values between 0 and 1.
-- `max_change`: max_change * pi specifies the maximum direction-change angle.
+- `splitProb`: probability for a splitting of the vessel into two vessel segments. Values between 0 and 1.
+- `changeProb`: probability for directional change of the vessel route. Values between 0 and 1.
+- `maxChange`: maxChange * pi specifies the maximum direction-change angle.
 - `splitnr`: used for recursive call of the function. For the first call set it to 1. 
-- `max_number_splits`: maximum number of splits of the vessel.
+- `maxNumSplits`: maximum number of splits of the vessel.
 - `stepsize`: stepsize of the vessel.
-- `change_diameter_splitting`: Indicates by how much the diameter decreases when the vessel splits
-- `split_prob_factor`: Factor by which the split probability `split_prob` is multiplied when the vessel splits
-- `change_prob_increase`: Increase of the change probability `change_prob` when the vessel splits
-- `steps_each_change`: Number of steps for the change of the vessel direction
-- `steps_no_change`: Number of steps for the case that the vessel does not change its direction
+- `splitDiameterChange`: Indicates by how much the diameter decreases when the vessel splits
+- `splitProbFactor`: Factor by which the split probability `splitProb` is multiplied when the vessel splits
+- `changeProbIncrease`: Increase of the change probability `changeProb` when the vessel splits
+- `stepsEachChange`: Number of steps for the change of the vessel direction
+- `stepsNoChange`: Number of steps for the case that the vessel does not change its direction
 - `rng`: Random number generator
  
 # Output
 - `route`: A length N vector containing the D dimensional points of the route of the vessel. The 
 length N depends on the random route.
-- `diameter_route`: A length N vector containing the diameter of the vessel at the positions of the route.
+- `diameterRoute`: A length N vector containing the diameter of the vessel at the positions of the route.
 """
 function vesselPath(N::NTuple{D,Int}; 
                     start,
                     angles::NTuple{Da,Real},
                     diameter::Real, 
-                    split_prob::Real, 
-                    change_prob::Real, 
-                    max_change::Real, 
+                    splitProb::Real, 
+                    changeProb::Real, 
+                    maxChange::Real, 
                     splitnr::Int=1,
-                    max_number_splits::Real = Inf,
+                    maxNumSplits::Real = Inf,
                     stepsize::Real = max(N...)/200,
-                    change_diameter_splitting::Real = 0.6,
-                    split_prob_factor::Real = 0.5,
-                    change_prob_increase::Real = 0.01,
-                    steps_each_change::Int = 20,
-                    steps_no_change::Int = 15,
+                    splitDiameterChange::Real = 0.6,
+                    splitProbFactor::Real = 0.5,
+                    changeProbIncrease::Real = 0.01,
+                    stepsEachChange::Int = 20,
+                    stepsNoChange::Int = 15,
                     rng::AbstractRNG = GLOBAL_RNG) where {D, Da}
   @assert (D-1) == Da "The length of the angles tuple must be $(D-1) but is $Da"
   route = NTuple{D,Float64}[]
   push!(route, start)
   while all( 1 .<= route[end] .<= N) # while the route of the vessel is inside the image area
-    angles =  changeDirection!(N, route, stepsize, angles, change_prob, 
-        max_change, steps_each_change, steps_no_change, rng)
+    angles =  changeDirection!(N, route, stepsize, angles, changeProb, 
+        maxChange, stepsEachChange, stepsNoChange, rng)
     
     # Splitting part
-    if rand(rng, Float64) < split_prob && (length(route) > 3) && (splitnr ≤ max_number_splits) # if vessel is splitting
+    if rand(rng, Float64) < splitProb && (length(route) > 3) && (splitnr ≤ maxNumSplits) # if vessel is splitting
         min_angle_diff = 0.15*pi
         # Randomly select the angle between the resulting two vessel parts
         angle_diffs = ntuple(_ -> rand(rng, Float64)*(pi/2 - min_angle_diff) + min_angle_diff, D-1)
@@ -130,24 +130,24 @@ function vesselPath(N::NTuple{D,Int};
         # of the splitting probabilities and directional change
         # probabilities is made.    
         routeA, diameterA = vesselPath(N; start=route[end], angles=angles .- parts_a .* angle_diffs,
-            diameter=diameter*change_diameter_splitting,
-            split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, 
-            max_change, splitnr=splitnr+1, max_number_splits, stepsize, change_diameter_splitting, 
-            split_prob_factor, change_prob_increase, steps_each_change, steps_no_change, rng)
+            diameter=diameter*splitDiameterChange,
+            splitProb=splitProb*splitProbFactor, changeProb=changeProb+changeProbIncrease, 
+            maxChange, splitnr=splitnr+1, maxNumSplits, stepsize, splitDiameterChange, 
+            splitProbFactor, changeProbIncrease, stepsEachChange, stepsNoChange, rng)
         routeB, diameterB = vesselPath(N; start=route[end], angles=angles .+ (1 .- parts_a) .* angle_diffs,  
-            diameter=diameter*change_diameter_splitting, 
-            split_prob=split_prob*split_prob_factor, change_prob=change_prob+change_prob_increase, 
-            max_change, splitnr=splitnr+1, max_number_splits, stepsize, change_diameter_splitting, 
-            split_prob_factor, change_prob_increase, steps_each_change, steps_no_change, rng)     
+            diameter=diameter*splitDiameterChange, 
+            splitProb=splitProb*splitProbFactor, changeProb=changeProb+changeProbIncrease, 
+            maxChange, splitnr=splitnr+1, maxNumSplits, stepsize, splitDiameterChange, 
+            splitProbFactor, changeProbIncrease, stepsEachChange, stepsNoChange, rng)     
         
-        diameter_route = getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
+        diameterRoute = getDiameterRoute(route, diameter, splitDiameterChange, splitnr)
         append!(route, routeA, routeB)
-        append!(diameter_route, diameterA, diameterB)
-        return route, diameter_route
+        append!(diameterRoute, diameterA, diameterB)
+        return route, diameterRoute
     end
   end
-  diameter_route = getDiameterRoute(route, diameter, change_diameter_splitting, splitnr)
-  return route, diameter_route
+  diameterRoute = getDiameterRoute(route, diameter, splitDiameterChange, splitnr)
+  return route, diameterRoute
 end
 
 sphereFunction(::NTuple{D, Int}) where D = throw(ArgumentError("Vessel phantoms are currently not implemented for $D dimensions."))
@@ -172,8 +172,8 @@ Generate a random vessel phantom.
 
   im = vesselPhantom((51,51,51); 
           start=(1, 25, 25), angles=(0.0, 0.0), 
-          diameter=2.5, split_prob=0.4, change_prob=0.3, 
-          max_change=0.3, splitnr=1, max_number_splits=1, rng StableRNG(123));
+          diameter=2.5, splitProb=0.4, changeProb=0.3, 
+          maxChange=0.3, splitnr=1, maxNumSplits=1, rng StableRNG(123));
 
   f = Figure(size=(300,300))
   ax = Axis3(f[1,1], aspect=:data)
@@ -181,9 +181,9 @@ Generate a random vessel phantom.
 """
 function vesselPhantom(N::NTuple{D,Int}; oversampling=2, rng = GLOBAL_RNG, kernelWidth=nothing, kargs...) where D
   objectFunction = sphereFunction(N)
-  route, diameter_route = vesselPath(N; rng, kargs...)
+  route, diameterRoute = vesselPath(N; rng, kargs...)
   # add small sphere for every entry in the route
-  obs = [ objectFunction( Float32.(route[i]), Float32(diameter_route[i]), 1.0f0) for i=eachindex(route) ]
+  obs = [ objectFunction( Float32.(route[i]), Float32(diameterRoute[i]), 1.0f0) for i=eachindex(route) ]
   ranges = ntuple(d-> 1:N[d], D)
   img = phantom(ranges..., obs, oversampling)
   if isnothing(kernelWidth)
